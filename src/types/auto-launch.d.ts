@@ -1,0 +1,18 @@
+declare module 'auto-launch' {
+  interface AutoLaunchOptions {
+    name: string
+    path?: string
+    args?: string[]
+    isHidden?: boolean
+    mac?: { useLaunchAgent?: boolean }
+  }
+
+  class AutoLaunch {
+    constructor(opts: AutoLaunchOptions)
+    enable(): Promise<void>
+    disable(): Promise<void>
+    isEnabled(): Promise<boolean>
+  }
+
+  export default AutoLaunch
+}

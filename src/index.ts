@@ -4,8 +4,15 @@ import pc from 'picocolors'
 import { disableAutostart, enableAutostart, isAutostartEnabled } from './autostart'
 import { ensureConfig, getConfigValue, listConfig, runSetupWizard, setConfigValue } from './config'
 import { APP_VERSION, getConfigFilePath, getLogDir } from './constants'
+import { installBinary } from './installer'
 import { logger } from './logger'
 import { download, upload } from './sync'
+import {
+  backgroundAutoUpdate,
+  checkAndNotifyUpdate,
+  checkForUpdate,
+  performUpdate
+} from './updater'
 import { startWatcher } from './watcher'
 
 const cli = cac('balatro-saves-sync')
@@ -18,6 +25,9 @@ cli.command('watch', 'Watch for Balatro launch/exit and auto-sync saves').action
   await logger.info(`Cloud save dir: ${config.cloudSaveDir}`)
   await logger.info(`Backup dir:     ${config.backupDir}`)
   await logger.info(`Log dir:        ${getLogDir()}`)
+
+  // Background auto-update check (non-blocking)
+  backgroundAutoUpdate().catch(() => {})
 
   const stop = await startWatcher(config)
 
@@ -35,6 +45,7 @@ cli.command('watch', 'Watch for Balatro launch/exit and auto-sync saves').action
 
 // ─── upload ──────────────────────────────────────────────
 cli.command('upload', 'Upload local saves to iCloud').action(async () => {
+  checkAndNotifyUpdate().catch(() => {})
   const config = await ensureConfig()
   const success = await upload(config)
   process.exit(success ? 0 : 1)
@@ -42,6 +53,7 @@ cli.command('upload', 'Upload local saves to iCloud').action(async () => {
 
 // ─── download ────────────────────────────────────────────
 cli.command('download', 'Download saves from iCloud to local').action(async () => {
+  checkAndNotifyUpdate().catch(() => {})
   const config = await ensureConfig()
   const success = await download(config)
   process.exit(success ? 0 : 1)
@@ -130,6 +142,37 @@ cli
       }
     }
   })
+
+// ─── install ─────────────────────────────────────────────
+cli.command('install', 'Install binary to ~/.local/bin and set up PATH').action(async () => {
+  await installBinary()
+})
+
+// ─── update ──────────────────────────────────────────────
+cli.command('update', 'Check for updates and install the latest version').action(async () => {
+  console.log(pc.dim(`Current version: v${APP_VERSION}`))
+  console.log(pc.dim('Checking for updates...'))
+  console.log('')
+
+  const { available, latestVersion } = await checkForUpdate()
+  if (!available || !latestVersion) {
+    console.log(pc.green('✅ Already up to date!'))
+    return
+  }
+
+  console.log(`New version available: ${pc.cyan(`v${latestVersion}`)}`)
+  console.log('')
+
+  const success = await performUpdate(latestVersion)
+  if (success) {
+    console.log('')
+    console.log(pc.green(`✅ Updated to v${latestVersion}!`))
+    console.log(pc.dim('Restart any running instances to apply.'))
+  } else {
+    console.error(pc.red('Update failed. Check the logs for details.'))
+    process.exit(1)
+  }
+})
 
 // ─── default / help ──────────────────────────────────────
 cli.help()

@@ -1,14 +1,26 @@
 import AutoLaunch from 'auto-launch'
+import { existsSync } from 'node:fs'
 import { logger } from './logger'
-import { APP_NAME } from './constants'
+import { APP_NAME, getInstalledBinaryPath } from './constants'
 
 let _launcher: AutoLaunch | null = null
+
+/**
+ * Get the path to use for autostart registration.
+ * Prefers the installed binary at ~/.local/bin, falls back to process.execPath.
+ */
+function getLauncherPath(): string {
+  const installed = getInstalledBinaryPath()
+  if (existsSync(installed)) return installed
+  return process.execPath
+}
 
 function getLauncher(): AutoLaunch {
   if (!_launcher) {
     _launcher = new AutoLaunch({
       name: APP_NAME,
-      path: process.execPath,
+      path: getLauncherPath(),
+      args: ['watch'],
       isHidden: false,
       mac: {
         useLaunchAgent: true

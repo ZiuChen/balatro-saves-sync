@@ -17,21 +17,36 @@
 
 ## 环境要求
 
-- [Bun](https://bun.sh/) >= 1.0（用于构建）
 - 系统已启用并可访问 iCloud 云盘
 - Balatro 已安装并至少启动过一次（以创建存档目录）
 
 ## 安装
 
+### 一键安装（推荐）
+
 ```bash
-# 克隆并构建
-git clone <repo-url>
+curl -fsSL https://raw.githubusercontent.com/ZiuChen/balatro-saves-sync/main/install.sh | bash
+```
+
+自动下载最新预构建二进制文件，验证 SHA256 校验和，安装到 `~/.local/bin/`。安装后工具会在后台自动更新。
+
+### 安装指定版本
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ZiuChen/balatro-saves-sync/main/install.sh | bash -s 0.2.0
+```
+
+### 从源码构建
+
+需要 [Bun](https://bun.sh/) >= 1.0 和 [pnpm](https://pnpm.io/)：
+
+```bash
+git clone https://github.com/ZiuChen/balatro-saves-sync.git
 cd balatro-saves-sync
 pnpm install
 pnpm build
+./dist/balatro-saves-sync install
 ```
-
-构建产物为独立二进制文件 `dist/balatro-saves-sync`，运行时无需 Node.js 环境。
 
 ## 快速开始
 
@@ -166,6 +181,34 @@ balatro-saves-sync autostart enable
 
 ```bash
 balatro-saves-sync autostart disable
+```
+
+## 自动更新
+
+通过安装脚本安装的二进制文件会在启动时自动检查更新并在后台下载安装。更新在下次启动时生效。
+
+手动更新：
+
+```bash
+balatro-saves-sync update
+```
+
+禁用自动更新：
+
+```bash
+export DISABLE_AUTOUPDATER=1
+```
+
+## 卸载
+
+```bash
+# 移除二进制文件和版本数据
+rm -f ~/.local/bin/balatro-saves-sync
+rm -rf ~/.local/share/balatro-saves-sync
+
+# 移除配置和日志（可选）
+rm -rf ~/.balatro-saves-sync
+rm -rf ~/Library/Logs/balatro-saves-sync   # macOS
 ```
 
 ## 工作流程

@@ -17,21 +17,36 @@ A CLI tool to automatically synchronize [Balatro](https://www.playbalatro.com/) 
 
 ## Requirements
 
-- [Bun](https://bun.sh/) >= 1.0 (for building)
 - iCloud Drive enabled and accessible on your system
 - Balatro installed and launched at least once (to create save directory)
 
 ## Installation
 
+### One-Line Install (Recommended)
+
 ```bash
-# Clone and build
-git clone <repo-url>
+curl -fsSL https://raw.githubusercontent.com/ZiuChen/balatro-saves-sync/main/install.sh | bash
+```
+
+This will download the latest prebuilt binary, verify its SHA256 checksum, and install it to `~/.local/bin/`. The binary auto-updates in the background.
+
+### Install a Specific Version
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ZiuChen/balatro-saves-sync/main/install.sh | bash -s 0.2.0
+```
+
+### Build from Source
+
+Requires [Bun](https://bun.sh/) >= 1.0 and [pnpm](https://pnpm.io/):
+
+```bash
+git clone https://github.com/ZiuChen/balatro-saves-sync.git
 cd balatro-saves-sync
 pnpm install
 pnpm build
+./dist/balatro-saves-sync install
 ```
-
-The build produces a standalone binary at `dist/balatro-saves-sync` — no Node.js runtime required to run it.
 
 ## Quick Start
 
@@ -166,6 +181,34 @@ To disable:
 
 ```bash
 balatro-saves-sync autostart disable
+```
+
+## Updates
+
+Native installations automatically check for updates on startup and install them in the background. Changes take effect the next time the tool is launched.
+
+To update manually:
+
+```bash
+balatro-saves-sync update
+```
+
+To disable auto-updates, set the environment variable:
+
+```bash
+export DISABLE_AUTOUPDATER=1
+```
+
+## Uninstall
+
+```bash
+# Remove binary and version data
+rm -f ~/.local/bin/balatro-saves-sync
+rm -rf ~/.local/share/balatro-saves-sync
+
+# Remove config and logs (optional)
+rm -rf ~/.balatro-saves-sync
+rm -rf ~/Library/Logs/balatro-saves-sync   # macOS
 ```
 
 ## How It Works

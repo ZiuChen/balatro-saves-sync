@@ -1,8 +1,13 @@
-import { homedir, platform } from 'node:os'
+import { arch, homedir, platform } from 'node:os'
 import { join } from 'node:path'
 
 export const APP_NAME = 'balatro-saves-sync'
 export const APP_VERSION = '0.1.0'
+
+export const GITHUB_OWNER = 'ZiuChen'
+export const GITHUB_REPO = 'balatro-saves-sync'
+export const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`
+export const GITHUB_API_RELEASES = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases`
 
 export const BALATRO_PROCESS_NAMES = [
   'Balatro',
@@ -86,4 +91,46 @@ export function getLogDir(): string {
     default:
       return join(home, `.${APP_NAME}`, 'logs')
   }
+}
+
+// ─── Distribution & Install Paths ────────────────────────
+
+/**
+ * Get the install data directory: ~/.local/share/balatro-saves-sync
+ */
+export function getInstallDir(): string {
+  return join(homedir(), '.local', 'share', APP_NAME)
+}
+
+/**
+ * Get the binary install directory: ~/.local/bin
+ */
+export function getBinDir(): string {
+  return join(homedir(), '.local', 'bin')
+}
+
+/**
+ * Get the installed binary path: ~/.local/bin/balatro-saves-sync[.exe]
+ */
+export function getInstalledBinaryPath(): string {
+  const ext = platform() === 'win32' ? '.exe' : ''
+  return join(getBinDir(), `${APP_NAME}${ext}`)
+}
+
+/**
+ * Get the platform key for binary distribution (e.g., "darwin-arm64").
+ */
+export function getPlatformKey(): string {
+  const os = platform() === 'win32' ? 'win32' : platform()
+  const a = arch() === 'arm64' ? 'arm64' : 'x64'
+  return `${os}-${a}`
+}
+
+/**
+ * Get the binary asset name for the current platform.
+ */
+export function getBinaryAssetName(plt?: string): string {
+  const key = plt || getPlatformKey()
+  const ext = key.startsWith('win32') ? '.exe' : ''
+  return `${APP_NAME}-${key}${ext}`
 }
