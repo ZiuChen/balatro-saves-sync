@@ -12,6 +12,23 @@ function getTimestamp(): string {
   return new Date().toISOString()
 }
 
+function getLocalTimestamp(): string {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const y = now.getFullYear()
+  const mo = pad(now.getMonth() + 1)
+  const d = pad(now.getDate())
+  const h = pad(now.getHours())
+  const mi = pad(now.getMinutes())
+  const s = pad(now.getSeconds())
+  const ms = String(now.getMilliseconds()).padStart(3, '0')
+  const offset = -now.getTimezoneOffset()
+  const sign = offset >= 0 ? '+' : '-'
+  const offH = pad(Math.floor(Math.abs(offset) / 60))
+  const offM = pad(Math.abs(offset) % 60)
+  return `${y}-${mo}-${d}T${h}:${mi}:${s}.${ms}${sign}${offH}:${offM}`
+}
+
 function getLogFileName(): string {
   const now = new Date()
   const date = now.toISOString().split('T')[0]
@@ -26,7 +43,7 @@ async function ensureLogDir(): Promise<void> {
 }
 
 function formatMessage(level: LogLevel, message: string): string {
-  return `[${getTimestamp()}] [${level.toUpperCase().padEnd(5)}] ${message}`
+  return `[${getLocalTimestamp()}] [${level.toUpperCase().padEnd(5)}] ${message}`
 }
 
 async function writeToLogFile(formatted: string): Promise<void> {

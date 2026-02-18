@@ -8,6 +8,26 @@ import { download, upload } from './sync'
 
 const execAsync = promisify(exec)
 
+// ─── Watcher Status ──────────────────────────────────────
+
+interface WatcherStatusInfo {
+  running: boolean
+  gameRunning: boolean
+  pollInterval: number
+  startedAt: number | null
+}
+
+let _watcherStatus: WatcherStatusInfo = {
+  running: false,
+  gameRunning: false,
+  pollInterval: 0,
+  startedAt: null
+}
+
+export function getWatcherStatus(): WatcherStatusInfo {
+  return { ..._watcherStatus }
+}
+
 /**
  * Check if Balatro is currently running.
  */
@@ -58,8 +78,16 @@ export async function startWatcher(config: AppConfig): Promise<() => void> {
 
   await logger.info(`Starting watcher (polling every ${config.pollInterval}ms)...`)
 
+  _watcherStatus = {
+    running: true,
+    gameRunning: false,
+    pollInterval: config.pollInterval,
+    startedAt: Date.now()
+  }
+
   // Check initial state
   wasRunning = await isBalatroRunning()
+  _watcherStatus.gameRunning = wasRunning
   if (wasRunning) {
     await logger.info('Balatro is currently running.')
   } else {
@@ -75,24 +103,26 @@ export async function startWatcher(config: AppConfig): Promise<() => void> {
       if (isRunning && !wasRunning) {
         // Game just started
         isProcessing = true
-        await logger.info('🎮 Balatro launched! Triggering DOWNLOAD...')
+        await logger.info('Game launched! Triggering download...')
         try {
           await download(config)
         } catch (err) {
           await logger.error(`Download on game start failed: ${err}`)
         }
         wasRunning = true
+        _watcherStatus.gameRunning = true
         isProcessing = false
       } else if (!isRunning && wasRunning) {
         // Game just stopped
         isProcessing = true
-        await logger.info('🛑 Balatro closed! Triggering UPLOAD...')
+        await logger.info('Game closed! Triggering upload...')
         try {
           await upload(config)
         } catch (err) {
           await logger.error(`Upload on game stop failed: ${err}`)
         }
         wasRunning = false
+        _watcherStatus.gameRunning = false
         isProcessing = false
       }
     } catch (err) {
@@ -104,6 +134,7 @@ export async function startWatcher(config: AppConfig): Promise<() => void> {
   return () => {
     stopped = true
     clearInterval(intervalId)
+    _watcherStatus = { running: false, gameRunning: false, pollInterval: 0, startedAt: null }
     logger.info('Watcher stopped.')
   }
 }

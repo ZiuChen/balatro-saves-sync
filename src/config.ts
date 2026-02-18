@@ -68,27 +68,27 @@ export async function runSetupWizard(): Promise<AppConfig> {
   const defaults = getDefaultConfig()
 
   console.log('')
-  console.log('🎮 Balatro Saves Sync - 首次配置')
+  console.log('Balatro Saves Sync - Initial Setup')
   console.log('─'.repeat(40))
   console.log('')
 
   const saveDir = await input({
-    message: 'Balatro 本地存档目录:',
+    message: 'Balatro local save directory:',
     default: defaults.saveDir
   })
 
   const cloudSaveDir = await input({
-    message: 'iCloud 云存档目录:',
+    message: 'iCloud cloud save directory:',
     default: defaults.cloudSaveDir
   })
 
   const backupDir = await input({
-    message: 'iCloud 备份目录:',
+    message: 'iCloud backup directory:',
     default: defaults.backupDir
   })
 
   const pollIntervalStr = await input({
-    message: '进程检测间隔 (毫秒):',
+    message: 'Process detection interval (ms):',
     default: String(defaults.pollInterval)
   })
 
@@ -101,25 +101,25 @@ export async function runSetupWizard(): Promise<AppConfig> {
 
   await saveConfig(config)
   console.log('')
-  console.log('✅ 配置已保存！')
+  console.log('Configuration saved!')
 
   // Ask about autostart
   const alreadyEnabled = await isAutostartEnabled()
   if (alreadyEnabled) {
-    console.log('ℹ️  开机自启已启用')
+    console.log('Autostart is already enabled.')
   } else {
     const shouldAutostart = await confirm({
-      message: '是否注册为系统启动项？(登录时自动运行 watch)',
+      message: 'Register as a login item? (auto-run watch on system startup)',
       default: true
     })
 
     if (shouldAutostart) {
       try {
         await enableAutostart()
-        console.log('✅ 开机自启已启用！')
+        console.log('Autostart enabled!')
       } catch (err) {
-        console.log(`⚠️  注册开机自启失败: ${err}`)
-        console.log('   你可以稍后运行 `balatro-saves-sync autostart enable` 手动启用')
+        console.log(`Warning: Failed to register autostart: ${err}`)
+        console.log('   You can enable it later with `balatro-saves-sync autostart enable`')
       }
     }
   }

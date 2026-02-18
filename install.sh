@@ -52,6 +52,20 @@ download_file() {
   fi
 }
 
+# Download with progress percentage
+download_file_progress() {
+  local url="$1"
+  local output="$2"
+
+  if [ "$DOWNLOADER" = "curl" ]; then
+    curl -fL -# -o "$output" "$url"
+  elif [ "$DOWNLOADER" = "wget" ]; then
+    wget --show-progress --progress=bar:force -q -O "$output" "$url"
+  else
+    return 1
+  fi
+}
+
 # ─── JSON parser fallback ────────────────────────────────
 get_checksum_from_manifest() {
   local json="$1"
@@ -145,7 +159,7 @@ fi
 
 # ─── Download binary ─────────────────────────────────────
 echo "Downloading binary..."
-download_file "${BASE_URL}/${BINARY_NAME}" "${TMPDIR}/${BINARY_NAME}"
+download_file_progress "${BASE_URL}/${BINARY_NAME}" "${TMPDIR}/${BINARY_NAME}"
 
 # ─── Verify checksum ─────────────────────────────────────
 echo "Verifying checksum..."
