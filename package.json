@@ -14,6 +14,8 @@
     "build": "bun build src/index.ts --compile --outfile dist/balatro-saves-sync",
     "build:all": "bash scripts/build-all.sh",
     "dev": "bun run src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "manifest": "bun run scripts/generate-manifest.ts",
     "release": "bash scripts/release.sh",
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@types/node": "^25.0.3",
     "bumpp": "^10.3.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

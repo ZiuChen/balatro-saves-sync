@@ -1,6 +1,7 @@
 import { cp, mkdir, readdir, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { formatBytes } from '@/utils/helpers'
 import { logger } from '@/utils/logger'
 
 /**
@@ -60,12 +61,4 @@ async function getDirSize(dirPath: string): Promise<number> {
     }
   }
   return totalSize
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
 }

@@ -12,6 +12,7 @@ import {
   getInstalledBinaryPath,
   getPlatformKey
 } from '@/utils/constants'
+import { compareVersions, formatBytes } from '@/utils/helpers'
 import { logger } from '@/utils/logger'
 
 // ─── Types ───────────────────────────────────────────────
@@ -40,28 +41,6 @@ interface Manifest {
 }
 
 // ─── Helpers ─────────────────────────────────────────────
-
-/**
- * Compare two semver version strings.
- * Returns 1 if a > b, -1 if a < b, 0 if equal.
- */
-function compareVersions(a: string, b: string): number {
-  const pa = a.replace(/^v/, '').split('.').map(Number)
-  const pb = b.replace(/^v/, '').split('.').map(Number)
-  for (let i = 0; i < 3; i++) {
-    const diff = (pa[i] || 0) - (pb[i] || 0)
-    if (diff !== 0) return diff > 0 ? 1 : -1
-  }
-  return 0
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
-}
 
 // ─── Public API ──────────────────────────────────────────
 

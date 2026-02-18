@@ -30,18 +30,17 @@ export function getWatcherStatus(): WatcherStatusInfo {
 
 /**
  * Check if Balatro is currently running.
+ * Exported for testing and dependency injection.
  */
-async function isBalatroRunning(): Promise<boolean> {
+export async function isBalatroRunning(): Promise<boolean> {
   try {
     const os = platform()
     let cmd: string
 
     if (os === 'darwin' || os === 'linux') {
-      // Use pgrep for Unix-like systems
       const patterns = BALATRO_PROCESS_NAMES.join('|')
       cmd = `pgrep -i -f "${patterns}" || true`
     } else if (os === 'win32') {
-      // Use tasklist for Windows
       cmd = `tasklist /FI "IMAGENAME eq Balatro.exe" /NH`
     } else {
       await logger.warn(`Unsupported platform for process detection: ${os}`)
@@ -55,7 +54,6 @@ async function isBalatroRunning(): Promise<boolean> {
       return output.toLowerCase().includes('balatro')
     }
 
-    // On Unix, pgrep returns PIDs if found, empty otherwise
     return output.length > 0
   } catch {
     return false
@@ -63,15 +61,19 @@ async function isBalatroRunning(): Promise<boolean> {
 }
 
 export interface WatcherOptions {
-  onGameStart?: () => Promise<void>
-  onGameStop?: () => Promise<void>
+  /** Override the process detection function (useful for testing). */
+  processChecker?: () => Promise<boolean>
 }
 
 /**
  * Start watching for Balatro process launch and exit.
  * Triggers download on game start, upload on game stop.
  */
-export async function startWatcher(config: AppConfig): Promise<() => void> {
+export async function startWatcher(
+  config: AppConfig,
+  options?: WatcherOptions
+): Promise<() => void> {
+  const checkProcess = options?.processChecker ?? isBalatroRunning
   let wasRunning = false
   let isProcessing = false
   let stopped = false
@@ -86,7 +88,7 @@ export async function startWatcher(config: AppConfig): Promise<() => void> {
   }
 
   // Check initial state
-  wasRunning = await isBalatroRunning()
+  wasRunning = await checkProcess()
   _watcherStatus.gameRunning = wasRunning
   if (wasRunning) {
     await logger.info('Balatro is currently running.')
@@ -98,7 +100,7 @@ export async function startWatcher(config: AppConfig): Promise<() => void> {
     if (stopped || isProcessing) return
 
     try {
-      const isRunning = await isBalatroRunning()
+      const isRunning = await checkProcess()
 
       if (isRunning && !wasRunning) {
         // Game just started
