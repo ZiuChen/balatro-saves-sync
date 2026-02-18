@@ -1,7 +1,7 @@
 import { appendFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import pc from 'picocolors'
-import { getLogDir } from './constants'
+import { getLogDir } from '@/utils/constants'
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug'
 

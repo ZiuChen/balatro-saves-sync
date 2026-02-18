@@ -1,8 +1,8 @@
 import { cp, mkdir, readdir, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import type { AppConfig } from './config'
-import { createBackup } from './backup'
-import { logger } from './logger'
+import type { AppConfig } from '@/utils/config'
+import { createBackup } from '@/utils/backup'
+import { logger } from '@/utils/logger'
 
 /**
  * DOWNLOAD: Copy saves from iCloud cloud save directory to local save directory.

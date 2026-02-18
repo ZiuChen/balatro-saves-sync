@@ -1,7 +1,7 @@
 import { cp, mkdir, readdir, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { logger } from './logger'
+import { logger } from '@/utils/logger'
 
 /**
  * Create a timestamped backup of a directory.

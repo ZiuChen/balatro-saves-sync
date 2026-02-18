@@ -8,9 +8,9 @@ import {
   getDefaultBackupDir,
   getDefaultCloudSaveDir,
   getDefaultSaveDir
-} from './constants'
-import { logger } from './logger'
-import { enableAutostart, isAutostartEnabled } from './autostart'
+} from '@/utils/constants'
+import { logger } from '@/utils/logger'
+import { enableAutostart, isAutostartEnabled } from '@/utils/autostart'
 
 export interface AppConfig {
   /** Local Balatro save directory */

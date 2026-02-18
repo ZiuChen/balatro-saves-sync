@@ -11,8 +11,8 @@ import {
   getInstallDir,
   getInstalledBinaryPath,
   getPlatformKey
-} from './constants'
-import { logger } from './logger'
+} from '@/utils/constants'
+import { logger } from '@/utils/logger'
 
 // ─── Types ───────────────────────────────────────────────
 

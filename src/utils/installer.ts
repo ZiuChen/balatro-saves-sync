@@ -9,7 +9,7 @@ import {
   getBinDir,
   getInstalledBinaryPath,
   getInstallDir
-} from './constants'
+} from '@/utils/constants'
 
 // ─── Shell Config Detection ─────────────────────────────
 

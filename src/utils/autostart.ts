@@ -1,7 +1,7 @@
 import AutoLaunch from 'auto-launch'
 import { existsSync } from 'node:fs'
-import { logger } from './logger'
-import { APP_NAME, getInstalledBinaryPath } from './constants'
+import { logger } from '@/utils/logger'
+import { APP_NAME, getInstalledBinaryPath } from '@/utils/constants'
 
 let _launcher: AutoLaunch | null = null
 

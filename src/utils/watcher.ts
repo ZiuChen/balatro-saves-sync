@@ -1,10 +1,10 @@
 import { exec } from 'node:child_process'
 import { platform } from 'node:os'
 import { promisify } from 'node:util'
-import type { AppConfig } from './config'
-import { BALATRO_PROCESS_NAMES } from './constants'
-import { logger } from './logger'
-import { download, upload } from './sync'
+import type { AppConfig } from '@/utils/config'
+import { BALATRO_PROCESS_NAMES } from '@/utils/constants'
+import { logger } from '@/utils/logger'
+import { download, upload } from '@/utils/sync'
 
 const execAsync = promisify(exec)
 
