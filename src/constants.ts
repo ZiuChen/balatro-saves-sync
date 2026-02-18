@@ -134,3 +134,17 @@ export function getBinaryAssetName(plt?: string): string {
   const ext = key.startsWith('win32') ? '.exe' : ''
   return `${APP_NAME}-${key}${ext}`
 }
+
+/**
+ * Get the PID file path for the daemon watcher: ~/.balatro-saves-sync/watcher.pid
+ */
+export function getPidFilePath(): string {
+  return join(getConfigDir(), 'watcher.pid')
+}
+
+/**
+ * Get the daemon log file path: <logDir>/daemon.log
+ */
+export function getDaemonLogPath(): string {
+  return join(getLogDir(), 'daemon.log')
+}

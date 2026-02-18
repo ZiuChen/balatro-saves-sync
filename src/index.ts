@@ -1,9 +1,18 @@
 import process from 'node:process'
+import { dirname } from 'node:path'
+import { spawn } from 'node:child_process'
+import { existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import cac from 'cac'
 import pc from 'picocolors'
 import { disableAutostart, enableAutostart, isAutostartEnabled } from './autostart'
 import { ensureConfig, getConfigValue, listConfig, runSetupWizard, setConfigValue } from './config'
-import { APP_VERSION, getConfigFilePath, getLogDir } from './constants'
+import {
+  APP_VERSION,
+  getConfigFilePath,
+  getDaemonLogPath,
+  getLogDir,
+  getPidFilePath
+} from './constants'
 import { installBinary } from './installer'
 import { logger } from './logger'
 import { download, upload } from './sync'
@@ -17,19 +26,79 @@ import { getWatcherStatus, startWatcher } from './watcher'
 
 const cli = cac('balatro-saves-sync')
 
+// ─── daemon helpers ──────────────────────────────────────
+
+/**
+ * Check if a daemon watcher is alive by reading the PID file.
+ * Returns the PID if alive, null otherwise.
+ */
+function getDaemonPid(): number | null {
+  const pidFile = getPidFilePath()
+  if (!existsSync(pidFile)) return null
+  const pid = Number.parseInt(readFileSync(pidFile, 'utf-8').trim(), 10)
+  if (Number.isNaN(pid)) return null
+  try {
+    // signal 0 tests if the process exists without killing it
+    process.kill(pid, 0)
+    return pid
+  } catch {
+    // Process not running, clean up stale PID file
+    try {
+      unlinkSync(pidFile)
+    } catch {}
+    return null
+  }
+}
+
 // ─── watch ───────────────────────────────────────────────
 cli
   .command('watch [action]', 'Watch for Balatro launch/exit and auto-sync saves')
-  .example('  $ balatro-saves-sync watch          Start the watcher')
-  .example('  $ balatro-saves-sync watch status   Show watcher status')
-  .action(async (action?: string) => {
+  .option('-d, --daemon', 'Run the watcher in the background (daemon mode)')
+  .example('  $ balatro-saves-sync watch              Start the watcher')
+  .example('  $ balatro-saves-sync watch -d           Start watcher in background')
+  .example('  $ balatro-saves-sync watch status       Show watcher status')
+  .example('  $ balatro-saves-sync watch stop         Stop the background watcher')
+  .action(async (action: string | undefined, options: { daemon?: boolean }) => {
+    // ── watch stop ──
+    if (action === 'stop') {
+      const pid = getDaemonPid()
+      if (!pid) {
+        console.log(pc.yellow('No background watcher is running.'))
+        return
+      }
+      try {
+        process.kill(pid, 'SIGTERM')
+        // Clean up PID file
+        try {
+          unlinkSync(getPidFilePath())
+        } catch {}
+        console.log(pc.green(`Watcher (PID ${pid}) stopped.`))
+      } catch (err) {
+        console.error(pc.red(`Failed to stop watcher (PID ${pid}): ${err}`))
+        process.exit(1)
+      }
+      return
+    }
+
+    // ── watch status ──
     if (action === 'status') {
+      // Check daemon first
+      const daemonPid = getDaemonPid()
+      if (daemonPid) {
+        console.log(pc.green(`Background watcher is running (PID ${daemonPid}).`))
+        console.log(pc.dim(`PID file: ${getPidFilePath()}`))
+        console.log(pc.dim(`Daemon log: ${getDaemonLogPath()}`))
+        console.log(pc.dim('Run `balatro-saves-sync watch stop` to stop it.'))
+        return
+      }
+
+      // Check in-process watcher
       const status = getWatcherStatus()
       if (!status.running) {
-        console.log(pc.yellow('Watcher is not running in this process.'))
+        console.log(pc.yellow('Watcher is not running.'))
         console.log(pc.dim('Run `balatro-saves-sync watch` to start the watcher.'))
       } else {
-        console.log(pc.green('Watcher is running.'))
+        console.log(pc.green('Watcher is running (foreground).'))
         console.log(`  Game running:  ${status.gameRunning ? pc.green('Yes') : pc.dim('No')}`)
         console.log(`  Poll interval: ${status.pollInterval}ms`)
         console.log(`  Uptime:        ${Math.floor((Date.now() - status.startedAt!) / 1000)}s`)
@@ -37,6 +106,47 @@ cli
       return
     }
 
+    // ── watch --daemon ──
+    if (options.daemon) {
+      // Check if already running
+      const existingPid = getDaemonPid()
+      if (existingPid) {
+        console.log(pc.yellow(`Watcher is already running in background (PID ${existingPid}).`))
+        console.log(pc.dim('Run `balatro-saves-sync watch stop` to stop it first.'))
+        return
+      }
+
+      // Ensure config exists before spawning (so the daemon doesn't need interactive input)
+      await ensureConfig()
+
+      // Ensure log directory exists
+      mkdirSync(getLogDir(), { recursive: true })
+      const logPath = getDaemonLogPath()
+      const logFd = openSync(logPath, 'a')
+
+      // Spawn a detached child process running `watch` in foreground mode
+      const child = spawn(process.execPath, ['watch'], {
+        detached: true,
+        stdio: ['ignore', logFd, logFd],
+        env: { ...process.env },
+        cwd: process.cwd()
+      })
+
+      child.unref()
+
+      // Write PID file
+      const pidFile = getPidFilePath()
+      mkdirSync(dirname(pidFile), { recursive: true })
+      writeFileSync(pidFile, String(child.pid), 'utf-8')
+
+      console.log(pc.green(`Watcher started in background (PID ${child.pid}).`))
+      console.log(pc.dim(`Logs: ${logPath}`))
+      console.log(pc.dim(`PID file: ${pidFile}`))
+      console.log(pc.dim('Run `balatro-saves-sync watch stop` to stop it.'))
+      process.exit(0)
+    }
+
+    // ── watch (foreground) ──
     const config = await ensureConfig()
     await logger.info('Balatro Saves Sync - Watcher started')
     await logger.info(`Save dir:       ${config.saveDir}`)
@@ -54,6 +164,10 @@ cli
       console.log('')
       await logger.info('Shutting down watcher...')
       stop()
+      // Clean up PID file if it exists (e.g. if spawned as daemon child)
+      try {
+        unlinkSync(getPidFilePath())
+      } catch {}
       process.exit(0)
     }
 
