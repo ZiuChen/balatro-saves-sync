@@ -19,7 +19,9 @@ const cli = cac('balatro-saves-sync')
 
 // ─── watch ───────────────────────────────────────────────
 cli
-  .command('watch [action]', 'Watch for Balatro launch/exit and auto-sync saves (action: status)')
+  .command('watch [action]', 'Watch for Balatro launch/exit and auto-sync saves')
+  .example('  $ balatro-saves-sync watch          Start the watcher')
+  .example('  $ balatro-saves-sync watch status   Show watcher status')
   .action(async (action?: string) => {
     if (action === 'status') {
       const status = getWatcherStatus()
@@ -126,7 +128,11 @@ cli
 
 // ─── autostart ───────────────────────────────────────────
 cli
-  .command('autostart [action]', 'Manage system auto-start (action: enable / disable / status)')
+  .command('autostart [action]', 'Manage system auto-start')
+  .example('  $ balatro-saves-sync autostart           Show current status')
+  .example('  $ balatro-saves-sync autostart enable    Enable auto-start')
+  .example('  $ balatro-saves-sync autostart disable   Disable auto-start')
+  .example('  $ balatro-saves-sync autostart status    Show current status')
   .action(async (action?: string) => {
     switch (action) {
       case 'enable': {
