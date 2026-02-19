@@ -2,7 +2,7 @@ import { arch, homedir, platform } from 'node:os'
 import { join } from 'node:path'
 
 export const APP_NAME = 'balatro-saves-sync'
-export const APP_VERSION = '0.3.0'
+export const APP_VERSION = '0.4.0'
 
 export const GITHUB_OWNER = 'ZiuChen'
 export const GITHUB_REPO = 'balatro-saves-sync'
