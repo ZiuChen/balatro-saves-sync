@@ -1,7 +1,7 @@
 import { cp, mkdir, readdir, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { formatBytes } from '@/utils/helpers'
+import { formatBytes, shortPath } from '@/utils/helpers'
 import { logger } from '@/utils/logger'
 
 /**
@@ -14,14 +14,14 @@ export async function createBackup(
   label: string
 ): Promise<string | null> {
   if (!existsSync(sourceDir)) {
-    await logger.warn(`Backup source does not exist: ${sourceDir}`)
+    await logger.warn(`Backup source does not exist: ${shortPath(sourceDir)}`)
     return null
   }
 
   // Check if source directory has content
   const entries = await readdir(sourceDir)
   if (entries.length === 0) {
-    await logger.warn(`Backup source is empty: ${sourceDir}`)
+    await logger.warn(`Backup source is empty: ${shortPath(sourceDir)}`)
     return null
   }
 
@@ -32,19 +32,17 @@ export async function createBackup(
 
   await mkdir(backupPath, { recursive: true })
 
-  await logger.info(`Creating backup: ${sourceDir} → ${backupPath}`)
-
   await cp(sourceDir, backupPath, { recursive: true })
 
   // Verify backup
   const backupEntries = await readdir(backupPath)
   if (backupEntries.length === 0) {
-    await logger.error(`Backup verification failed: ${backupPath} is empty`)
+    await logger.error(`Backup verification failed: ${folderName} is empty`)
     return null
   }
 
   const totalSize = await getDirSize(backupPath)
-  await logger.info(`Backup created successfully: ${backupPath} (${formatBytes(totalSize)})`)
+  await logger.info(`Backup created: ${folderName} (${formatBytes(totalSize)})`)
   return backupPath
 }
 

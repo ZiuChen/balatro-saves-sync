@@ -2,6 +2,9 @@
  * Shared pure helper functions.
  */
 
+import { readdir, stat } from 'node:fs/promises'
+import { join, basename } from 'node:path'
+
 /**
  * Format a byte count into a human-readable string (e.g. "1.5 MB").
  */
@@ -25,4 +28,53 @@ export function compareVersions(a: string, b: string): number {
     if (diff !== 0) return diff > 0 ? 1 : -1
   }
   return 0
+}
+
+/**
+ * Return the short display name for a path (last directory component).
+ */
+export function shortPath(fullPath: string): string {
+  return basename(fullPath)
+}
+
+/**
+ * Format a Date into a locale-friendly datetime string.
+ */
+export function formatDateTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const y = date.getFullYear()
+  const mo = pad(date.getMonth() + 1)
+  const d = pad(date.getDate())
+  const h = pad(date.getHours())
+  const mi = pad(date.getMinutes())
+  const s = pad(date.getSeconds())
+  return `${y}-${mo}-${d} ${h}:${mi}:${s}`
+}
+
+/**
+ * Get the latest modification time across all files in a directory (recursive).
+ * Returns null if the directory doesn't exist or is empty.
+ */
+export async function getLatestMtime(dirPath: string): Promise<Date | null> {
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true })
+    let latest: Date | null = null
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry.name)
+      if (entry.isDirectory()) {
+        const subLatest = await getLatestMtime(fullPath)
+        if (subLatest && (!latest || subLatest > latest)) {
+          latest = subLatest
+        }
+      } else {
+        const fileStat = await stat(fullPath)
+        if (!latest || fileStat.mtime > latest) {
+          latest = fileStat.mtime
+        }
+      }
+    }
+    return latest
+  } catch {
+    return null
+  }
 }

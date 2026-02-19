@@ -2,7 +2,18 @@ import { cp, mkdir, readdir, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import type { AppConfig } from '@/utils/config'
 import { createBackup } from '@/utils/backup'
+import { formatDateTime, getLatestMtime } from '@/utils/helpers'
 import { logger } from '@/utils/logger'
+
+/**
+ * Log the last-updated time of a save directory.
+ */
+async function logSaveTimestamp(dirPath: string, label: string): Promise<void> {
+  const mtime = await getLatestMtime(dirPath)
+  if (mtime) {
+    await logger.info(`${label} last updated: ${formatDateTime(mtime)}`)
+  }
+}
 
 /**
  * DOWNLOAD: Copy saves from iCloud cloud save directory to local save directory.
@@ -15,7 +26,7 @@ export async function download(config: AppConfig): Promise<boolean> {
 
   // Check cloud save exists and has content
   if (!existsSync(cloudSaveDir)) {
-    await logger.warn(`Cloud save directory does not exist: ${cloudSaveDir}`)
+    await logger.warn('Cloud save directory does not exist.')
     await logger.warn(
       'Skipping download. Please upload a save first or check your iCloud directory.'
     )
@@ -24,10 +35,14 @@ export async function download(config: AppConfig): Promise<boolean> {
 
   const cloudEntries = await readdir(cloudSaveDir)
   if (cloudEntries.length === 0) {
-    await logger.warn(`Cloud save directory is empty: ${cloudSaveDir}`)
+    await logger.warn('Cloud save directory is empty.')
     await logger.warn('Skipping download. No cloud save found.')
     return false
   }
+
+  // Show last-updated timestamps
+  await logSaveTimestamp(cloudSaveDir, 'Cloud save')
+  await logSaveTimestamp(saveDir, 'Local save')
 
   // Backup local saves before overwriting
   await logger.info('Backing up local saves before download...')
@@ -50,7 +65,7 @@ export async function download(config: AppConfig): Promise<boolean> {
     await cp(cloudSaveDir, saveDir, { recursive: true })
 
     const newEntries = await readdir(saveDir)
-    await logger.info(`Download complete: ${newEntries.length} items synced to ${saveDir}`)
+    await logger.info(`Download complete: ${newEntries.length} items synced.`)
     return true
   } catch (err) {
     await logger.error(`Download failed: ${err}`)
@@ -69,17 +84,21 @@ export async function upload(config: AppConfig): Promise<boolean> {
 
   // Check local save exists and has content
   if (!existsSync(saveDir)) {
-    await logger.warn(`Local save directory does not exist: ${saveDir}`)
+    await logger.warn('Local save directory does not exist.')
     await logger.warn('Skipping upload. Please play Balatro at least once to create a save.')
     return false
   }
 
   const localEntries = await readdir(saveDir)
   if (localEntries.length === 0) {
-    await logger.warn(`Local save directory is empty: ${saveDir}`)
+    await logger.warn('Local save directory is empty.')
     await logger.warn('Skipping upload. No local save found.')
     return false
   }
+
+  // Show last-updated timestamps
+  await logSaveTimestamp(saveDir, 'Local save')
+  await logSaveTimestamp(cloudSaveDir, 'Cloud save')
 
   // Backup cloud saves before overwriting
   await logger.info('Backing up cloud saves before upload...')
@@ -102,7 +121,7 @@ export async function upload(config: AppConfig): Promise<boolean> {
     await cp(saveDir, cloudSaveDir, { recursive: true })
 
     const newEntries = await readdir(cloudSaveDir)
-    await logger.info(`Upload complete: ${newEntries.length} items synced to ${cloudSaveDir}`)
+    await logger.info(`Upload complete: ${newEntries.length} items synced.`)
     return true
   } catch (err) {
     await logger.error(`Upload failed: ${err}`)

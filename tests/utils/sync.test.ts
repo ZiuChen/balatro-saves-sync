@@ -16,6 +16,15 @@ vi.mock('@/utils/backup', () => ({
   createBackup: vi.fn().mockResolvedValue('/mock/backup/path')
 }))
 
+// Mock getLatestMtime to avoid fs calls in tests
+vi.mock('@/utils/helpers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/helpers')>()
+  return {
+    ...actual,
+    getLatestMtime: vi.fn().mockResolvedValue(null)
+  }
+})
+
 const mockExistsSync = vi.fn()
 vi.mock('node:fs', () => ({
   existsSync: (...args: unknown[]) => mockExistsSync(...args)
