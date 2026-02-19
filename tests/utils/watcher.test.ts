@@ -64,9 +64,58 @@ describe('watcher', () => {
 
       // Simulate game launch
       isRunning = true
-      await vi.advanceTimersByTimeAsync(1000)
+      // Idle interval = pollInterval * 3 = 3000ms
+      await vi.advanceTimersByTimeAsync(3000)
 
       // Stop watcher
+      stop()
+      vi.useRealTimers()
+    })
+
+    it('uses adaptive polling: longer interval when idle, shorter when active', async () => {
+      vi.useFakeTimers()
+
+      const mockDownload = vi.fn().mockResolvedValue(true)
+      const mockUpload = vi.fn().mockResolvedValue(true)
+
+      vi.doMock('@/utils/sync', () => ({
+        download: mockDownload,
+        upload: mockUpload
+      }))
+
+      const { startWatcher, getWatcherStatus } = await import('@/utils/watcher')
+
+      let isRunning = false
+      const processChecker = vi.fn(async () => isRunning)
+
+      const config = {
+        saveDir: '/mock/saves',
+        cloudSaveDir: '/mock/cloud',
+        backupDir: '/mock/backup',
+        pollInterval: 1000
+      }
+
+      const stop = await startWatcher(config, { processChecker })
+
+      // Initially idle → currentInterval should be pollInterval * 3
+      expect(getWatcherStatus().currentInterval).toBe(3000)
+
+      // Simulate game launch
+      isRunning = true
+      await vi.advanceTimersByTimeAsync(3000)
+
+      // After game detected → currentInterval should be pollInterval
+      expect(getWatcherStatus().currentInterval).toBe(1000)
+      expect(getWatcherStatus().gameRunning).toBe(true)
+
+      // Simulate game stop
+      isRunning = false
+      await vi.advanceTimersByTimeAsync(1000)
+
+      // After game stopped → currentInterval should be back to idle
+      expect(getWatcherStatus().currentInterval).toBe(3000)
+      expect(getWatcherStatus().gameRunning).toBe(false)
+
       stop()
       vi.useRealTimers()
     })

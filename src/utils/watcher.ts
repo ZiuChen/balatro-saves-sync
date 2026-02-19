@@ -14,13 +14,19 @@ interface WatcherStatusInfo {
   running: boolean
   gameRunning: boolean
   pollInterval: number
+  /** Current effective interval (adapts based on game state) */
+  currentInterval: number
   startedAt: number | null
 }
+
+/** Multiplier applied to pollInterval when the game is not running. */
+const IDLE_POLL_MULTIPLIER = 3
 
 let _watcherStatus: WatcherStatusInfo = {
   running: false,
   gameRunning: false,
   pollInterval: 0,
+  currentInterval: 0,
   startedAt: null
 }
 
@@ -78,26 +84,38 @@ export async function startWatcher(
   let isProcessing = false
   let stopped = false
 
-  await logger.info(`Starting watcher (polling every ${config.pollInterval}ms)...`)
+  const idleInterval = config.pollInterval * IDLE_POLL_MULTIPLIER
+  const activeInterval = config.pollInterval
+
+  await logger.info(
+    `Starting watcher (adaptive polling: ${activeInterval}ms active / ${idleInterval}ms idle)...`
+  )
 
   _watcherStatus = {
     running: true,
     gameRunning: false,
     pollInterval: config.pollInterval,
+    currentInterval: idleInterval,
     startedAt: Date.now()
   }
 
   // Check initial state
   wasRunning = await checkProcess()
   _watcherStatus.gameRunning = wasRunning
+  _watcherStatus.currentInterval = wasRunning ? activeInterval : idleInterval
   if (wasRunning) {
     await logger.info('Balatro is currently running.')
   } else {
     await logger.info('Balatro is not running. Waiting for game to launch...')
   }
 
-  const intervalId = setInterval(async () => {
-    if (stopped || isProcessing) return
+  let timerId: ReturnType<typeof setTimeout>
+
+  async function poll() {
+    if (stopped || isProcessing) {
+      if (!stopped) schedulePoll()
+      return
+    }
 
     try {
       const isRunning = await checkProcess()
@@ -113,6 +131,7 @@ export async function startWatcher(
         }
         wasRunning = true
         _watcherStatus.gameRunning = true
+        _watcherStatus.currentInterval = activeInterval
         isProcessing = false
       } else if (!isRunning && wasRunning) {
         // Game just stopped
@@ -125,18 +144,35 @@ export async function startWatcher(
         }
         wasRunning = false
         _watcherStatus.gameRunning = false
+        _watcherStatus.currentInterval = idleInterval
         isProcessing = false
       }
     } catch (err) {
       await logger.error(`Watcher error: ${err}`)
     }
-  }, config.pollInterval)
+
+    if (!stopped) schedulePoll()
+  }
+
+  function schedulePoll() {
+    const interval = wasRunning ? activeInterval : idleInterval
+    timerId = setTimeout(poll, interval)
+  }
+
+  // Start the polling loop
+  schedulePoll()
 
   // Return stop function
   return () => {
     stopped = true
-    clearInterval(intervalId)
-    _watcherStatus = { running: false, gameRunning: false, pollInterval: 0, startedAt: null }
+    clearTimeout(timerId)
+    _watcherStatus = {
+      running: false,
+      gameRunning: false,
+      pollInterval: 0,
+      currentInterval: 0,
+      startedAt: null
+    }
     logger.info('Watcher stopped.')
   }
 }
