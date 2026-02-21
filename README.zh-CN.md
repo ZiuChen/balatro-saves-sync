@@ -72,7 +72,17 @@ balatro-saves-sync watch
 ### `watch` — 监听游戏自动同步
 
 ```bash
+# 前台启动监听
 balatro-saves-sync watch
+
+# 后台守护进程模式启动
+balatro-saves-sync watch -d
+
+# 查看监听器状态
+balatro-saves-sync watch status
+
+# 停止后台监听器
+balatro-saves-sync watch stop
 ```
 
 以轮询方式监控 Balatro 进程：
@@ -80,7 +90,15 @@ balatro-saves-sync watch
 - **游戏启动** → 触发 **DOWNLOAD**（iCloud → 本地）
 - **游戏关闭** → 触发 **UPLOAD**（本地 → iCloud）
 
-按 `Ctrl+C` 优雅停止监听。
+使用 `-d` / `--daemon` 参数可在后台运行。前台模式下按 `Ctrl+C` 优雅停止监听。
+
+### `diff` — 对比本地与云端存档
+
+```bash
+balatro-saves-sync diff
+```
+
+以表格形式展示本地与云端存档的对比信息，包括文件数、大小、最后修改时间和内容哈希。较新的一侧在表头中以 ★ 标记。如果存档完全一致（哈希相同），则无需操作；否则可交互式选择下载或上传。
 
 ### `upload` — 手动上传
 
@@ -139,6 +157,30 @@ balatro-saves-sync autostart status
 支持 macOS、Windows 和 Linux。基于 [auto-launch](https://github.com/Teamwork/node-auto-launch) 实现。
 
 > **提示：** 运行 `setup` 向导时也会交互式询问是否启用开机自启。
+
+### `logs` — 打开日志目录
+
+```bash
+balatro-saves-sync logs
+```
+
+在系统文件管理器中打开日志目录。
+
+### `install` — 安装二进制文件到 PATH
+
+```bash
+balatro-saves-sync install
+```
+
+将二进制文件安装到 `~/.local/bin` 并配置 PATH。从源码构建后使用。
+
+### `update` — 检查更新
+
+```bash
+balatro-saves-sync update
+```
+
+检查最新版本，如有更新则自动下载安装。
 
 ## 目录结构
 

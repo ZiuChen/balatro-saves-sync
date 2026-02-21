@@ -72,7 +72,17 @@ On first run of any command (if not yet configured), you'll be prompted to set:
 ### `watch` — Auto-sync on game events
 
 ```bash
+# Start watching in foreground
 balatro-saves-sync watch
+
+# Start watching as a background daemon
+balatro-saves-sync watch -d
+
+# Check watcher status
+balatro-saves-sync watch status
+
+# Stop the background watcher
+balatro-saves-sync watch stop
 ```
 
 Monitors the Balatro process in a polling loop:
@@ -80,7 +90,15 @@ Monitors the Balatro process in a polling loop:
 - **Game launches** → triggers **DOWNLOAD** (iCloud → Local)
 - **Game closes** → triggers **UPLOAD** (Local → iCloud)
 
-Press `Ctrl+C` to stop watching gracefully.
+Use `-d` / `--daemon` flag to run in the background. Press `Ctrl+C` to stop foreground watching gracefully.
+
+### `diff` — Compare local and cloud saves
+
+```bash
+balatro-saves-sync diff
+```
+
+Displays a comparison table of local vs cloud saves, including file count, size, last modified time, and content hash. The newer side is marked with ★ in the header. If saves are identical (same hash), no action is needed. Otherwise, you can interactively choose to download or upload.
 
 ### `upload` — Manual upload
 
@@ -139,6 +157,30 @@ balatro-saves-sync autostart status
 Supports macOS, Windows, and Linux. Powered by [auto-launch](https://github.com/Teamwork/node-auto-launch).
 
 > **Note:** The `setup` wizard also offers to enable autostart interactively.
+
+### `logs` — Open log directory
+
+```bash
+balatro-saves-sync logs
+```
+
+Opens the log directory in your system's file manager.
+
+### `install` — Install binary to PATH
+
+```bash
+balatro-saves-sync install
+```
+
+Installs the binary to `~/.local/bin` and sets up PATH. Useful after building from source.
+
+### `update` — Check for updates
+
+```bash
+balatro-saves-sync update
+```
+
+Checks for the latest version and installs it if available.
 
 ## Directory Structure
 
