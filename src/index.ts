@@ -2,6 +2,7 @@ import cac from 'cac'
 import { APP_VERSION } from '@/utils/constants'
 import { registerAutostartCommand } from '@/commands/autostart'
 import { registerConfigCommands } from '@/commands/config'
+import { registerDiffCommand } from '@/commands/diff'
 import { registerInstallCommand } from '@/commands/install'
 import { registerLogsCommand } from '@/commands/logs'
 import { registerSetupCommand } from '@/commands/setup'
@@ -14,6 +15,7 @@ const cli = cac('balatro-saves-sync')
 // Register all commands
 registerWatchCommand(cli)
 registerSyncCommands(cli)
+registerDiffCommand(cli)
 registerConfigCommands(cli)
 registerSetupCommand(cli)
 registerAutostartCommand(cli)
