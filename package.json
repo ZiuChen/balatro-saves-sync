@@ -1,7 +1,7 @@
 {
   "name": "balatro-saves-sync",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CLI tool to automatically sync Balatro saves between local and iCloud.",
   "license": "MIT",
   "bin": {
