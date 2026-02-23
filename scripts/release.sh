@@ -15,12 +15,10 @@ REPO_URL="https://github.com/ZiuChen/balatro-saves-sync"
 echo "🚀 Releasing v${VERSION}..."
 echo ""
 
-# 1. Update version in source files
+# 1. Update version in package.json (constants.ts reads from package.json at build time)
 echo "📝 Updating version..."
 sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" package.json
-sed -i '' "s/export const APP_VERSION = '[^']*'/export const APP_VERSION = '${VERSION}'/" src/constants.ts
 echo "  ✓ package.json"
-echo "  ✓ src/constants.ts"
 
 # 2. Build all platforms
 echo ""

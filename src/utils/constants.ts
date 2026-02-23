@@ -1,8 +1,9 @@
 import { arch, homedir, platform } from 'node:os'
 import { join } from 'node:path'
+import pkg from '../../package.json'
 
 export const APP_NAME = 'balatro-saves-sync'
-export const APP_VERSION = '1.0.0'
+export const APP_VERSION: string = pkg.version
 
 export const GITHUB_OWNER = 'ZiuChen'
 export const GITHUB_REPO = 'balatro-saves-sync'
