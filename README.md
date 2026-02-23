@@ -174,6 +174,26 @@ balatro-saves-sync install
 
 Installs the binary to `~/.local/bin` and sets up PATH. Useful after building from source.
 
+### `uninstall` — Uninstall completely
+
+```bash
+# Interactive confirmation
+balatro-saves-sync uninstall
+
+# Skip confirmation
+balatro-saves-sync uninstall --yes
+```
+
+Completely removes the tool and all its data:
+
+- Stops any running background watcher daemon
+- Disables system auto-start (LaunchAgent / startup entry)
+- Removes the installed binary (`~/.local/bin/balatro-saves-sync`)
+- Removes the install data directory (`~/.local/share/balatro-saves-sync`)
+- Removes the config directory (`~/.balatro-saves-sync`)
+- Removes the log directory
+- Detects and reports shell config files containing PATH entries for manual cleanup
+
 ### `update` — Check for updates
 
 ```bash
@@ -243,14 +263,18 @@ export DISABLE_AUTOUPDATER=1
 
 ## Uninstall
 
-```bash
-# Remove binary and version data
-rm -f ~/.local/bin/balatro-saves-sync
-rm -rf ~/.local/share/balatro-saves-sync
+Use the built-in uninstall command for a clean removal:
 
-# Remove config and logs (optional)
-rm -rf ~/.balatro-saves-sync
-rm -rf ~/Library/Logs/balatro-saves-sync   # macOS
+```bash
+balatro-saves-sync uninstall
+```
+
+This will stop any running daemon, disable auto-start, remove the binary, config, logs, and install data. Shell config files with PATH entries will be reported for manual cleanup.
+
+To skip the confirmation prompt:
+
+```bash
+balatro-saves-sync uninstall --yes
 ```
 
 ## How It Works

@@ -174,6 +174,26 @@ balatro-saves-sync install
 
 将二进制文件安装到 `~/.local/bin` 并配置 PATH。从源码构建后使用。
 
+### `uninstall` — 完全卸载
+
+```bash
+# 交互式确认
+balatro-saves-sync uninstall
+
+# 跳过确认
+balatro-saves-sync uninstall --yes
+```
+
+彻底移除工具及其所有数据：
+
+- 停止正在运行的后台守护进程
+- 禁用系统开机自启（LaunchAgent / 启动项）
+- 移除已安装的二进制文件（`~/.local/bin/balatro-saves-sync`）
+- 移除安装数据目录（`~/.local/share/balatro-saves-sync`）
+- 移除配置目录（`~/.balatro-saves-sync`）
+- 移除日志目录
+- 检测并提示包含 PATH 条目的 shell 配置文件，供用户手动清理
+
 ### `update` — 检查更新
 
 ```bash
@@ -243,14 +263,18 @@ export DISABLE_AUTOUPDATER=1
 
 ## 卸载
 
-```bash
-# 移除二进制文件和版本数据
-rm -f ~/.local/bin/balatro-saves-sync
-rm -rf ~/.local/share/balatro-saves-sync
+使用内置的卸载命令进行彻底清理：
 
-# 移除配置和日志（可选）
-rm -rf ~/.balatro-saves-sync
-rm -rf ~/Library/Logs/balatro-saves-sync   # macOS
+```bash
+balatro-saves-sync uninstall
+```
+
+该命令会停止运行中的守护进程、禁用开机自启、移除二进制文件、配置、日志和安装数据。包含 PATH 条目的 shell 配置文件会被检出并提示用户手动清理。
+
+跳过确认提示：
+
+```bash
+balatro-saves-sync uninstall --yes
 ```
 
 ## 工作流程

@@ -6,6 +6,7 @@ import { registerDiffCommand } from '@/commands/diff'
 import { registerInstallCommand } from '@/commands/install'
 import { registerLogsCommand } from '@/commands/logs'
 import { registerSetupCommand } from '@/commands/setup'
+import { registerUninstallCommand } from '@/commands/uninstall'
 import { registerSyncCommands } from '@/commands/sync'
 import { registerUpdateCommand } from '@/commands/update'
 import { registerWatchCommand } from '@/commands/watch'
@@ -21,6 +22,7 @@ registerSetupCommand(cli)
 registerAutostartCommand(cli)
 registerLogsCommand(cli)
 registerInstallCommand(cli)
+registerUninstallCommand(cli)
 registerUpdateCommand(cli)
 
 // Global help & version
