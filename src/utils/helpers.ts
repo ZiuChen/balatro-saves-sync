@@ -4,6 +4,7 @@
 
 import { readdir, stat } from 'node:fs/promises'
 import { join, basename } from 'node:path'
+import { logger } from '@/utils/logger'
 
 /**
  * Format a byte count into a human-readable string (e.g. "1.5 MB").
@@ -80,7 +81,7 @@ export async function getLatestMtime(dirPath: string): Promise<Date | null> {
     return latest
   } catch (err) {
     // Log the error for debugging instead of silently swallowing
-    console.error(`[getLatestMtime] Failed to read ${dirPath}: ${err}`)
+    await logger.warn(`[getLatestMtime] Failed to read ${dirPath}: ${err}`)
     return null
   }
 }

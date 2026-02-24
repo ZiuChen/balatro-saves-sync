@@ -256,9 +256,18 @@ export async function diff(config: AppConfig): Promise<DiffResult> {
     try {
       await readdirWithRetry(cloudSaveDir, { withFileTypes: true })
     } catch (err) {
+      const errStr = String(err)
+      const isPermError = errStr.includes('EPERM') || errStr.includes('EACCES')
       const msg = `Cannot read iCloud directory: ${err}`
       errors.push(msg)
       await logger.error(msg)
+
+      if (isPermError) {
+        const hint =
+          'This is likely caused by macOS privacy restrictions. Fix: System Settings → Privacy & Security → Full Disk Access → Add your terminal app (Terminal.app / iTerm2 / etc.)'
+        errors.push(hint)
+        await logger.warn(hint)
+      }
     }
   }
 
