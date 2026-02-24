@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { execSync } from 'node:child_process'
 import { chmod, mkdir, rename, unlink, writeFile } from 'node:fs/promises'
 import { platform } from 'node:os'
 import pc from 'picocolors'
@@ -41,6 +42,55 @@ interface Manifest {
 }
 
 // ─── Helpers ─────────────────────────────────────────────
+
+/**
+ * Download a file with a progress bar displayed in the terminal.
+ * Uses the ReadableStream from fetch to track bytes received.
+ */
+async function downloadWithProgress(url: string, totalSize: number): Promise<Buffer> {
+  const res = await fetch(url)
+  if (!res.ok || !res.body) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let received = 0
+  const barWidth = 30
+
+  const renderProgress = () => {
+    const ratio = totalSize > 0 ? Math.min(received / totalSize, 1) : 0
+    const percent = Math.floor(ratio * 100)
+    const filled = Math.round(barWidth * ratio)
+    const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled)
+    const receivedStr = formatBytes(received)
+    const totalStr = formatBytes(totalSize)
+    process.stdout.write(
+      `\r  ${bar} ${String(percent).padStart(3)}% (${receivedStr} / ${totalStr})`
+    )
+  }
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+    received += value.length
+    renderProgress()
+  }
+
+  // Clear progress line and move to next line
+  process.stdout.write('\r' + ' '.repeat(80) + '\r')
+
+  // Concatenate all chunks into a single Buffer
+  const full = new Uint8Array(received)
+  let offset = 0
+  for (const chunk of chunks) {
+    full.set(chunk, offset)
+    offset += chunk.length
+  }
+  return Buffer.from(full)
+}
 
 // ─── Public API ──────────────────────────────────────────
 
@@ -143,8 +193,7 @@ export async function performUpdate(version?: string): Promise<boolean> {
 
   let binaryBuffer: Buffer
   try {
-    const res = await fetch(binaryAsset.browser_download_url)
-    binaryBuffer = Buffer.from(await res.arrayBuffer())
+    binaryBuffer = await downloadWithProgress(binaryAsset.browser_download_url, platformInfo.size)
   } catch (err) {
     await logger.error(`Failed to download binary: ${err}`)
     return false
@@ -172,6 +221,15 @@ export async function performUpdate(version?: string): Promise<boolean> {
 
     if (platform() !== 'win32') {
       await chmod(stagingPath, 0o755)
+    }
+
+    // Remove macOS quarantine/provenance attributes to prevent iCloud access issues
+    if (platform() === 'darwin') {
+      try {
+        execSync(`xattr -cr "${stagingPath}"`, { stdio: 'ignore' })
+      } catch {
+        // Not critical
+      }
     }
 
     // Atomic rename (same directory = same filesystem)
