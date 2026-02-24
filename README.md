@@ -38,13 +38,13 @@ curl -fsSL https://raw.githubusercontent.com/ZiuChen/balatro-saves-sync/main/ins
 
 ### Build from Source
 
-Requires [Bun](https://bun.sh/) >= 1.0 and [pnpm](https://pnpm.io/):
+Requires [Bun](https://bun.sh/) >= 1.0:
 
 ```bash
 git clone https://github.com/ZiuChen/balatro-saves-sync.git
 cd balatro-saves-sync
-pnpm install
-pnpm build
+bun install
+bun run build
 ./dist/balatro-saves-sync install
 ```
 
