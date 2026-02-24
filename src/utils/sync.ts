@@ -1,6 +1,7 @@
 import { cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
+import type { Dirent } from 'node:fs'
 import { join } from 'node:path'
 import type { AppConfig } from '@/utils/config'
 import { createBackup } from '@/utils/backup'
@@ -130,7 +131,8 @@ async function getDirSize(dirPath: string): Promise<number> {
       }
     }
     return total
-  } catch {
+  } catch (err) {
+    await logger.warn(`Failed to compute dir size for ${dirPath}: ${err}`)
     return 0
   }
 }
@@ -151,7 +153,8 @@ async function countFiles(dirPath: string): Promise<number> {
       }
     }
     return count
-  } catch {
+  } catch (err) {
+    await logger.warn(`Failed to count files in ${dirPath}: ${err}`)
     return 0
   }
 }
@@ -165,7 +168,8 @@ async function getDirHash(dirPath: string): Promise<string | null> {
     const hash = createHash('sha256')
     await hashDir(dirPath, dirPath, hash)
     return hash.digest('hex').slice(0, 16)
-  } catch {
+  } catch (err) {
+    await logger.warn(`Failed to compute dir hash for ${dirPath}: ${err}`)
     return null
   }
 }
@@ -206,6 +210,35 @@ export interface DiffResult {
   cloudFileCount: number
   localHash: string | null
   cloudHash: string | null
+  /** Errors encountered during diff (e.g. iCloud access issues) */
+  errors: string[]
+}
+
+/**
+ * Read directory entries with retry for iCloud directories that may be temporarily unavailable.
+ */
+async function readdirWithRetry(
+  dirPath: string,
+  options: { withFileTypes: true },
+  retries = 2,
+  delayMs = 500
+): Promise<Dirent[]> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await readdir(dirPath, options)
+    } catch (err) {
+      if (attempt < retries) {
+        await logger.warn(
+          `readdir failed for ${dirPath} (attempt ${attempt + 1}/${retries + 1}): ${err}. Retrying in ${delayMs}ms...`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      } else {
+        throw err
+      }
+    }
+  }
+  // Unreachable, but makes TypeScript happy
+  throw new Error(`readdir failed after ${retries + 1} attempts`)
 }
 
 /**
@@ -213,9 +246,21 @@ export interface DiffResult {
  */
 export async function diff(config: AppConfig): Promise<DiffResult> {
   const { saveDir, cloudSaveDir } = config
+  const errors: string[] = []
 
   const localExists = existsSync(saveDir)
   const cloudExists = existsSync(cloudSaveDir)
+
+  // Pre-check: try to read the cloud directory to warm up iCloud access
+  if (cloudExists) {
+    try {
+      await readdirWithRetry(cloudSaveDir, { withFileTypes: true })
+    } catch (err) {
+      const msg = `Cannot read iCloud directory: ${err}`
+      errors.push(msg)
+      await logger.error(msg)
+    }
+  }
 
   const [
     localMtime,
@@ -237,6 +282,16 @@ export async function diff(config: AppConfig): Promise<DiffResult> {
     cloudExists ? getDirHash(cloudSaveDir) : Promise.resolve(null)
   ])
 
+  // Detect suspicious state: directory exists but all operations returned empty
+  if (cloudExists && cloudFileCount === 0 && cloudSize === 0 && !cloudHash) {
+    const msg =
+      'iCloud directory exists but appears empty — this may indicate iCloud sync is in progress or a temporary access issue. Try again in a moment.'
+    if (!errors.length) {
+      errors.push(msg)
+    }
+    await logger.warn(msg)
+  }
+
   return {
     localExists,
     cloudExists,
@@ -247,7 +302,8 @@ export async function diff(config: AppConfig): Promise<DiffResult> {
     localFileCount,
     cloudFileCount,
     localHash,
-    cloudHash
+    cloudHash,
+    errors
   }
 }
 
@@ -324,6 +380,14 @@ export function formatDiff(result: DiffResult): string {
     } else {
       lines.push('')
       lines.push('→ Same modification time but different content.')
+    }
+  }
+
+  // Show errors/warnings
+  if (result.errors && result.errors.length > 0) {
+    lines.push('')
+    for (const err of result.errors) {
+      lines.push(`⚠ ${err}`)
     }
   }
 

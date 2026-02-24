@@ -180,6 +180,12 @@ echo "Checksum verified ✓"
 
 # ─── Install ─────────────────────────────────────────────
 chmod +x "${TMPDIR}/${BINARY_NAME}"
+
+# Remove macOS quarantine/provenance attributes to prevent iCloud access issues
+if [ "$os" = "darwin" ]; then
+  xattr -cr "${TMPDIR}/${BINARY_NAME}" 2>/dev/null || true
+fi
+
 "${TMPDIR}/${BINARY_NAME}" install
 
 # ─── Done ─────────────────────────────────────────────────

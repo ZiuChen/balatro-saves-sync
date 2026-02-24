@@ -67,14 +67,20 @@ export async function getLatestMtime(dirPath: string): Promise<Date | null> {
           latest = subLatest
         }
       } else {
-        const fileStat = await stat(fullPath)
-        if (!latest || fileStat.mtime > latest) {
-          latest = fileStat.mtime
+        try {
+          const fileStat = await stat(fullPath)
+          if (!latest || fileStat.mtime > latest) {
+            latest = fileStat.mtime
+          }
+        } catch {
+          // Skip files that can't be stat'd (e.g. iCloud .icloud placeholders)
         }
       }
     }
     return latest
-  } catch {
+  } catch (err) {
+    // Log the error for debugging instead of silently swallowing
+    console.error(`[getLatestMtime] Failed to read ${dirPath}: ${err}`)
     return null
   }
 }

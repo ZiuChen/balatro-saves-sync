@@ -1,7 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { confirm, input } from '@inquirer/prompts'
+import pc from 'picocolors'
 import {
   getConfigDir,
   getConfigFilePath,
@@ -56,6 +57,39 @@ export async function saveConfig(config: AppConfig): Promise<void> {
   await logger.info(`Config saved to ${configPath}`)
 }
 
+/**
+ * Verify that the iCloud directory is accessible and readable.
+ * Warns the user if there are access issues (common with macOS privacy restrictions).
+ */
+async function verifyICloudAccess(cloudSaveDir: string): Promise<void> {
+  if (!existsSync(cloudSaveDir)) {
+    // Directory doesn't exist yet, that's fine — it will be created on first upload
+    return
+  }
+
+  try {
+    const entries = await readdir(cloudSaveDir)
+    if (entries.length > 0) {
+      console.log(
+        `  ${pc.green('✓')} iCloud directory accessible (${entries.length} entries found)`
+      )
+    } else {
+      console.log(`  ${pc.green('✓')} iCloud directory accessible (empty)`)
+    }
+  } catch (err) {
+    console.log('')
+    console.log(pc.yellow('⚠️  Cannot read iCloud directory:'))
+    console.log(pc.yellow(`   ${cloudSaveDir}`))
+    console.log(pc.yellow(`   Error: ${err}`))
+    console.log('')
+    console.log(pc.yellow('   This may be caused by macOS privacy restrictions.'))
+    console.log(pc.yellow('   Fix: System Settings → Privacy & Security → Full Disk Access'))
+    console.log(pc.yellow('   Add your terminal app (Terminal.app / iTerm2 / etc.)'))
+    console.log('')
+    await logger.warn(`iCloud directory access check failed: ${err}`)
+  }
+}
+
 export async function ensureConfig(): Promise<AppConfig> {
   const existing = await loadConfig()
   if (existing) {
@@ -102,6 +136,9 @@ export async function runSetupWizard(): Promise<AppConfig> {
   await saveConfig(config)
   console.log('')
   console.log('Configuration saved!')
+
+  // Verify iCloud directory access
+  await verifyICloudAccess(config.cloudSaveDir)
 
   // Ask about autostart
   const alreadyEnabled = await isAutostartEnabled()

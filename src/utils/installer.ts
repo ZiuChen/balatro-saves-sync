@@ -1,4 +1,5 @@
 import { chmod, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir, platform } from 'node:os'
@@ -117,6 +118,16 @@ export async function installBinary(): Promise<void> {
     console.log(`  ${pc.green('✓')} Binary installed to ${targetPath}`)
   } else {
     console.log(`  ${pc.green('✓')} Binary already at ${targetPath}`)
+  }
+
+  // 2.5. Remove macOS quarantine/provenance attributes to prevent iCloud access issues
+  if (platform() === 'darwin') {
+    try {
+      execSync(`xattr -cr "${targetPath}"`, { stdio: 'ignore' })
+      console.log(`  ${pc.green('✓')} Removed macOS quarantine attributes`)
+    } catch {
+      // Not critical, can continue
+    }
   }
 
   // 3. Write version file
